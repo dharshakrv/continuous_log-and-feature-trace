@@ -1,30 +1,24 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors'
-import mongoose from 'mongoose';
-import { TestController } from './controller/FeatureTraceController'
+import { FeatureTraceController } from './controller/FeatureTraceController'
 import { DI } from './di/DIContainer';
-import { MessagingService } from './service/MessagingService';
 const expressApp: express.Application = express()
 
-class App {
-    private messageService: MessagingService
+import morgan from 'morgan';
+import dotenv from 'dotenv';
+dotenv.config();
 
-    constructor() {
-        this.messageService = DI.get(MessagingService)
-    }
+class App {
 
     initializeApp() {
         this.registerControllers()
         this.startServer()
     }
 
-    startConsumerService() {
-        // this.messageService.consumeMessage()
-    }
-
     // Register controllers
     private async registerControllers() {
+        expressApp.use(morgan('combined'))
         expressApp.use(bodyParser.urlencoded({ extended: true }))
         expressApp.use(bodyParser.json())
         expressApp.use(cors())
@@ -37,19 +31,15 @@ class App {
             next();
         });
         // Controllers
-        expressApp.use('/message', DI.get<TestController>(TestController).getRouter())
+        expressApp.use(`${process.env.BASE_URL}/trace`, DI.get<FeatureTraceController>(FeatureTraceController).getRouter())
     }
 
     private startServer() {
-        mongoose.connect('mongodb://127.0.0.1/message_logs')
-        .then(res => console.log('MongoDB connected successfully'))
-        .catch(e => console.log(e))
-        expressApp.listen(8888, () => {
-            console.log('Application server started on PORT 8888')
+        expressApp.listen(process.env.PORT, () => {
+            console.log('Application server started on PORT ', process.env.PORT)
         })
     }
 }
 
 const app = DI.get<App>(App);
 app.initializeApp()
-app.startConsumerService()

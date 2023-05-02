@@ -1,26 +1,61 @@
 import { Request, Response, Router } from "express";
 import { DI } from "../di/DIContainer";
-import { Logg } from "../logger/Logg";
+import { Logger } from "../logger/Logger";
 import { FeatureTraceService } from "../service/FeatureTraceService";
 import { Controller } from "./Controller";
 
-export class TestController implements Controller {
-    private logger: Logg
+export class FeatureTraceController implements Controller {
     private featureTraceService: FeatureTraceService
 
     constructor() {
-        this.logger = DI.get(Logg)
         this.featureTraceService = DI.get(FeatureTraceService)
     }
 
     getRouter(): Router {
         const router = Router()
-
-        router.get('/getTraces',async (req: Request, res: Response) => {
-            let trace_data_obj: any = req.body
-            let resp: any = this.featureTraceService.processTracedata(trace_data_obj)
-            res.json({ response: resp })
+        router.post('/insertNewTrace', async (req: Request, res: Response) => {
+            await this.featureTraceService.processTracedata(req.body)
+            .then((resp: any) => {
+                res.json({ status: "success", response: resp })
+            })
+            .catch((e: any) => {
+                res.json({ status: "error", response: e })
+            })
         })
+
+        router.post('/getAllTraces', async (req: Request, res: Response) => {
+            let pageNum: any = req.query.pageNo
+            let pageSize: any = req.query.size
+            pageNum = parseInt(pageNum)
+            pageSize = parseInt(pageSize)
+            await this.featureTraceService.getAllTraces(pageNum, pageSize)
+            .then((resp: any) => {
+                res.json({ status: "success", response: resp })
+            })
+            .catch((e: any) => {
+                res.json({ status: "error", response: e })
+            })
+        })
+
+        router.post('/getTraces',async (req: Request, res: Response) => {
+            let trace_data_obj: any = req.body.parent_trace_id
+            await this.featureTraceService.getTraceDetaildById(trace_data_obj)
+            .then((resp: any) => {
+                res.json({ status: "success", response: resp })
+            })
+            .catch((e: any) => {
+                res.json({ status: "error", response: e })
+            })
+        })
+
+        router.post('/getFeatureLogs', async (req: Request, res: Response) => {
+            let spanTraceId: any = req.body.span_trace_id
+            let parentTraceId: any = req.body.parent_trace_id
+            await this.featureTraceService.getFeatureLogs(spanTraceId, parentTraceId)
+            .then((resp: any) => { res.json({ status: "success", response: resp }) })
+            .catch((e: any) => { res.json({ status: "error", response: e }) })
+        })
+
         return router
     }
 }

@@ -1,20 +1,27 @@
+import { MongoConnection } from "../config/MongoConnection";
 import { DI } from "../di/DIContainer";
-import TraceObjModel from "../models/feature_trace";
+import { Logger } from "../logger/Logger";
 
 export class Service {
 
-    constructor() {}
+    private logger: Logger
+
+    constructor() {
+        this.logger = DI.get(Logger)
+    }
 
     async flattenJson(data: any) {
         const arr: any = [];
         function iterate(obj: any) {
+            if (obj == null || obj == undefined) return
             if (obj.children.length === 0 || obj.children == undefined) {
                 return
             } else {
-                obj.children.forEach((child: any) => {
-                    arr.push(child.root)
-                    iterate(child);
-                });
+                for (let ob of obj.children) {
+                    if (ob == null || ob == undefined) continue
+                    arr.push(ob.root)
+                    iterate(ob);
+                }
             }
         }
         arr.push(data.root)
@@ -22,25 +29,67 @@ export class Service {
         return arr;
     }
 
-    async consumeAndInsertData(data: any): Promise<any> {
+    async consumeAndInsertTraceData(data: any): Promise<any> {
         new Promise(async (resolve, reject) => {
-            console.log('consumed Data => ',data)
-            let destructuredData: any = await this.flattenJson(JSON.parse(data))
+            this.logger.log(JSON.stringify(data))
+            let requestIP = data.requestIP
+            let destructuredData: any = await this.flattenJson(data)
             const parent_traceId: string = destructuredData[0].trace_id
             const feature_traceName: string = destructuredData[0].service_name
             const trace_createdAt: Date = destructuredData[0].startTime
+            const app_code: string = destructuredData[0].http_path.split("/")[0]
             const trace_obj: Object = destructuredData
-            const trace = new TraceObjModel({
+
+            const trace_data: any = {
                 parent_trace_id: parent_traceId,
                 feature_trace_name: feature_traceName,
+                app_code: app_code,
                 feature_createdAt: trace_createdAt,
                 feature_trace: trace_obj,
+                request_ip: requestIP,
                 createdAt: new Date(),
                 updatedAt: new Date()
+            }
+
+            MongoConnection.state().getDb().then(async db => {
+                const collectionName = db.collection('trace_obj')
+                await collectionName.insertOne(trace_data)
+                .then((resp: any) => { 
+                    this.logger.log('trace_obj inserted')
+                })
+                .catch((e: any) => {
+                    this.logger.log(e) 
+                })
             })
-            await trace.save((err: any) => {
-                if (!err) resolve('trace object inserted')
-                else reject(err)
+        })
+    }
+
+    async consumeAndInsertLogData(data: any): Promise<any> {
+        new Promise(async (resolve, reject) => {
+            let spanTraceId: any
+            let parentTraceId: any
+            let logData = data[0]
+            if (logData.trace !== undefined || logData.trace !== null) {
+                spanTraceId = logData.span_trace
+                parentTraceId = logData.parent_trace
+            }
+            delete logData.span_trace
+            delete logData.parent_trace_id
+
+            let destructuredData: any = {
+                span_trace_id: spanTraceId,
+                parent_trace_id: parentTraceId,
+                log_data: logData
+            }
+            MongoConnection.state().getDb().then(async db => {
+                const collectionName = db.collection('log_objects')
+                await collectionName.insertOne(destructuredData)
+                .then((resp: any) => { 
+                    this.logger.log('log_obj inserted')
+                })
+                .catch((e: any) => {
+                    this.logger.log(e)
+                })
             })
         })
     }
