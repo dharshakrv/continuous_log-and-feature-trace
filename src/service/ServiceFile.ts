@@ -19,6 +19,10 @@ export class Service {
             } else {
                 for (let ob of obj.children) {
                     if (ob == null || ob == undefined) continue
+                    if (!ob.root) {
+                        arr.push(ob)
+                        return
+                    }
                     arr.push(ob.root)
                     iterate(ob);
                 }
@@ -33,17 +37,17 @@ export class Service {
         new Promise(async (resolve, reject) => {
             this.logger.log(JSON.stringify(data))
             let requestIP = data.requestIP
+            let appCode = data.APP_CODE
             let destructuredData: any = await this.flattenJson(data)
             const parent_traceId: string = destructuredData[0].trace_id
             const feature_traceName: string = destructuredData[0].service_name
             const trace_createdAt: Date = destructuredData[0].startTime
-            const app_code: string = destructuredData[0].http_path.split("/")[0]
             const trace_obj: Object = destructuredData
 
             const trace_data: any = {
                 parent_trace_id: parent_traceId,
                 feature_trace_name: feature_traceName,
-                app_code: app_code,
+                app_code: appCode,
                 feature_createdAt: trace_createdAt,
                 feature_trace: trace_obj,
                 request_ip: requestIP,

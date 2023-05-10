@@ -2,11 +2,11 @@ import { Consumer, Kafka } from 'kafkajs';
 import { Service } from '../service/ServiceFile';
 import { DI } from '../di/DIContainer';
 
-const traceGroupId: any = 'feature-trace-groupid-consume'
-const logGroupId: any = 'feature-log-message-groupid-consume'
+const traceGroupId: any = process.env.FEATURE_TRACE_GROUP_ID!
+const logGroupId: any = process.env.LOG_MESSAGE_GROUP_ID!
 
-const traceKafkaTopic: any = 'FEATURE_TRACE_TOPIC'
-const logKafkaTopic: any = 'LOGMESSAGE_TOPIC'
+const traceKafkaTopic: any = process.env.FEATURE_TRACE_CONSUME_TOPIC!
+const logKafkaTopic: any = process.env.LOG_MESSAGE_CONSUME_TOPIC!
 
 export class KafkaService {
     private kafka: Kafka

@@ -43,7 +43,6 @@ export class MessagingService {
             eachMessage: async ({ message }) => {
                 const messageObj: any = message.value?.toString()
                 let data = JSON.parse(messageObj)
-                let dataType = data.type
                 let dataMessage = data.message
                 let inputData = JSON.parse(Buffer.from(dataMessage, "base64").toString())
                 await this.serviceFile.consumeAndInsertTraceData(inputData)

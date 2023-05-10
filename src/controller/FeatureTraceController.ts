@@ -24,11 +24,8 @@ export class FeatureTraceController implements Controller {
         })
 
         router.post('/getAllTraces', async (req: Request, res: Response) => {
-            let pageNum: any = req.query.pageNo
-            let pageSize: any = req.query.size
-            pageNum = parseInt(pageNum)
-            pageSize = parseInt(pageSize)
-            await this.featureTraceService.getAllTraces(pageNum, pageSize)
+            let requestData: any = req.body
+            await this.featureTraceService.getAllTraces(requestData)
             .then((resp: any) => {
                 res.json({ status: "success", response: resp })
             })
