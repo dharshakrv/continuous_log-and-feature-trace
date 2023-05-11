@@ -19,8 +19,6 @@ export class FeatureTraceService {
     async getAllTraces(requestData: any) {
         return new Promise(async(resolve, reject) => {
             try {
-                // let pageNo = parseInt(requestData.pageNo)
-                // let size = parseInt(requestData.size)
                 let startDate = requestData.start_date ? new Date(requestData.start_date): new Date("2023-01-01 00:00:00")
                 let endDate = requestData.end_date ? new Date(requestData.end_date) : new Date()
                 let pageNo = requestData.pageNo ? parseInt(requestData.pageNo) : 1
@@ -34,12 +32,22 @@ export class FeatureTraceService {
                     { $match: { "app_code": requestData.app_code } },
                     { $project: { "feature_trace": 0 } },
                     { $skip: noOfrecords * (pageNo - 1) },
-                    { $limit: noOfrecords }
+                    { $limit: noOfrecords },
                 ]
                 
                 this.logger.log(`query: , ${JSON.stringify(query)}`)
                 let resultData: any = await this.dbService.getByArrayArgToNestedArrayQuery('trace_obj', query)
-                resolve(resultData)
+                let totalDocuments: any = await this.dbService.getByArrayArgToNestedArrayQuery('trace_obj', [
+                    { $match: { "createdAt": { 
+                        $gte: startDate, 
+                        $lte: endDate
+                    }}},
+                    {  $sort: { _id: -1 } },
+                    { $match: { "app_code": requestData.app_code } },
+                    { $project: { "feature_trace": 0 } },
+                    { $count: "count" }
+                ])
+                resolve({ result: resultData, totalRecords: totalDocuments[0].count })
             }
             catch(error) {
                 reject(error)

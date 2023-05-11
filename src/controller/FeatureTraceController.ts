@@ -27,7 +27,7 @@ export class FeatureTraceController implements Controller {
             let requestData: any = req.body
             await this.featureTraceService.getAllTraces(requestData)
             .then((resp: any) => {
-                res.json({ status: "success", response: resp })
+                res.json({ status: "success", response: resp, totalRecords: resp.totalRecords })
             })
             .catch((e: any) => {
                 res.json({ status: "error", response: e })

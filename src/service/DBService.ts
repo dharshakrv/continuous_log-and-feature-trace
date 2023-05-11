@@ -11,7 +11,6 @@ export class DBService {
 
     getByQuery(collectionName: any, whereObject: any) {
         return new Promise((resolve, reject) => {
-            // Added Log Level based on ENV variable by Akhil on 16-08-2021
             if (process.env.LOG_LEVEL === 'DEBUG') {
             this.logger.log(`collectionName, ${collectionName}`)
             this.logger.log(`whereObject, ${whereObject}`)
@@ -20,7 +19,6 @@ export class DBService {
                 const collection = db.collection(collectionName);
                 let queryCursor = collection.find<any>(whereObject, {});
                 queryCursor.toArray().then((v: any) => {
-                    // this.logger.log("VisitByv", v)
                     return resolve(v);
                 }, (error: any) => {
                     this.logger.error(`Read Error Inner Retrieving, ${error}`);
@@ -39,7 +37,6 @@ export class DBService {
 
     getByQueryProjecttion(collectionName: any, whereObject: any, projection: any) {
         return new Promise((resolve, reject) => {
-            // Added Log Level based on ENV variable by Akhil on 16-08-2021
             if (process.env.LOG_LEVEL === 'DEBUG') {
             this.logger.log(`collectionName, ${collectionName}`)
             this.logger.log(`whereObject, ${whereObject}`)
@@ -48,7 +45,6 @@ export class DBService {
                 const collection = db.collection(collectionName);
                 let queryCursor = collection.find<any>(whereObject, {});
                 queryCursor.toArray().then((v: any) => {
-                    // this.logger.log("VisitByv", v)
                     return resolve(v);
                 }, (error: any) => {
                     this.logger.error(`Read Error Inner Retrieving, ${error}`);
@@ -67,7 +63,6 @@ export class DBService {
 
     getByArrayArgToNestedArrayQuery(collectionName: any, query: any) {
         return new Promise((resolve, reject) => {
-            // Added Log Level based on ENV variable by Akhil on 16-08-2021
             if (process.env.LOG_LEVEL === 'DEBUG') {
             this.logger.log(`collectionName:, ${collectionName}`)
             this.logger.info(`whereObject:, ${query}`);
@@ -76,7 +71,6 @@ export class DBService {
                 const collection = db.collection(collectionName);
                 let queryCursor = collection.aggregate<any>(query);
                 queryCursor.toArray().then((v: any) => {
-                    // this.logger.log("VisitByv", v)
                     return resolve(v);
                 }, (error: any) => {
                     this.logger.error(`Read Error Inner Retrieving, ${error}`);
