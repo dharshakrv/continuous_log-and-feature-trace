@@ -18,18 +18,68 @@ export class FeatureTraceService {
 
     async getAllTraces(requestData: any) {
         return new Promise(async(resolve, reject) => {
+            let startDate = requestData.start_date ? new Date(requestData.start_date): new Date("2023-01-01 00:00:00")
+            let endDate = requestData.end_date ? new Date(requestData.end_date) : new Date()
+            let pageNo = requestData.pageNo ? parseInt(requestData.pageNo) : 1
+            let noOfrecords = requestData.size ? parseInt(requestData.size) : 10
+            let traceId = requestData.traceId ? requestData.traceId : { $ne:null }
+            let featureTraceName = requestData.featureTraceName ? requestData.featureTraceName : { $ne:null }
+            let requestIP = requestData.requestIP ? requestData.requestIP : { $ne:null }
             try {
-                let startDate = requestData.start_date ? new Date(requestData.start_date): new Date("2023-01-01 00:00:00")
-                let endDate = requestData.end_date ? new Date(requestData.end_date) : new Date()
-                let pageNo = requestData.pageNo ? parseInt(requestData.pageNo) : 1
-                let noOfrecords = requestData.size ? parseInt(requestData.size) : 10
+                /**
+                 * Aggregation search on column
+                 * { $match: { "app_code": { $regex: "", $options: "i" } } }
+                 */
+
+                /**
+                 * Fecet Query
+                 * let facetQuery = [ { 
+                        $facet: {
+                            "result": [
+                                { $match: { "createdAt": {  $gte: startDate, $lte: endDate } } },
+                                { $sort: { _id: -1 } },
+                                { $match: { 
+                                        "app_code": appCode, 
+                                        "parent_trace_id": traceId, 
+                                        "feature_trace_name": featureTraceName,
+                                        "request_ip": requestIP
+                                    }
+                                },
+                                { $project: { "feature_trace": 0 } },
+                                { $skip: noOfrecords * (pageNo - 1) },
+                                { $limit: noOfrecords },
+                            ],
+                            "totalDocuments": [
+                                { $match: { "createdAt": {  $gte: startDate, $lte: endDate } } },
+                                {  $sort: { _id: -1 } },
+                                { $match: { 
+                                    "app_code": appCode,
+                                    "parent_trace_id": traceId, 
+                                    "feature_trace_name": featureTraceName
+                                    } 
+                                },
+                                { $project: { "feature_trace": 0 } },
+                                { $count: "count" }
+                            ],
+                        }
+                    } ]
+                 */
                 let query = [
-                    { $match: { "createdAt": { 
-                        $gte: startDate, 
-                        $lte: endDate
-                    }}},
+                    { 
+                        $match: { 
+                            "createdAt": { 
+                                $gte: startDate, 
+                                $lte: endDate
+                            }
+                        }
+                    },
                     {  $sort: { _id: -1 } },
-                    { $match: { "app_code": requestData.app_code } },
+                    { $match: { 
+                        "app_code": requestData.app_code, 
+                        "parent_trace_id": traceId, 
+                        "feature_trace_name": featureTraceName, 
+                        "request_ip": requestIP 
+                    } },
                     { $project: { "feature_trace": 0 } },
                     { $skip: noOfrecords * (pageNo - 1) },
                     { $limit: noOfrecords },
@@ -43,14 +93,18 @@ export class FeatureTraceService {
                         $lte: endDate
                     }}},
                     {  $sort: { _id: -1 } },
-                    { $match: { "app_code": requestData.app_code } },
+                    { $match: { 
+                        "app_code": requestData.app_code,
+                        "parent_trace_id": traceId, 
+                        "feature_trace_name": featureTraceName
+                    } },
                     { $project: { "feature_trace": 0 } },
                     { $count: "count" }
                 ])
                 resolve({ result: resultData, totalRecords: totalDocuments[0].count })
             }
             catch(error) {
-                reject(error)
+                reject({ result: [], totalRecords: 0 })
             }
         })
     }
@@ -59,9 +113,11 @@ export class FeatureTraceService {
         return new Promise((resolve, reject) => {
             try {
                 if (traceId === null || traceId === undefined) {
-                    reject(`traceId can't be Null/Undefined ${traceId}`)
+                    this.logger.log(`traceId can't be Null/Undefined`)
+                    reject(`traceId can't be Null/Undefined`)
                 }
                 let whereObject = { parent_trace_id: traceId }
+                this.logger.log(`whereObj query => , ${whereObject}`)
                 let traceDetails: any = this.dbService.getByQuery('trace_obj', whereObject)
                 resolve(traceDetails)
             }
@@ -71,16 +127,15 @@ export class FeatureTraceService {
         })
     }
 
-    async getFeatureLogs(spanTraceId: any, parentTraceId: any) {
+    async getFeatureLogs(spanTraceId: any) {
         return new Promise((resolve, reject) => {
             try {
                 if (spanTraceId === null || spanTraceId === undefined) {
-                    reject(`spanTraceId can't be Null/Undefined ${spanTraceId}`)
+                    this.logger.log(`spanTraceId can't be Null/Undefined`)
+                    reject(`spanTraceId can't be Null/Undefined`)
                 }
-                if (parentTraceId === null || parentTraceId === undefined) {
-                    reject(`parentTraceId can't be Null/Undefined ${parentTraceId}`)
-                }
-                let whereObject = {  span_trace_id: spanTraceId, parent_trace_id: parentTraceId }
+                let whereObject = {  span_trace_id: spanTraceId }
+                this.logger.log(`whereObj query => , ${whereObject}`)
                 let projection = { projection: { _id: 0, log_data: 1 }}
                 let logsByTraceid: any = this.dbService.getByQueryProjecttion('log_objects', whereObject, projection)
                 resolve(logsByTraceid)
@@ -114,7 +169,7 @@ export class FeatureTraceService {
             iterate(trace_data_obj);
             // resolve(destructuredData)
 
-            console.log('final data: ', JSON.stringify(destructuredData))
+            this.logger.log(`final data: ,${JSON.stringify(destructuredData)}`)
             // let requestIP = destructuredData[0].requestIP
             // const parent_traceId: string = destructuredData[0].trace_id
             // const feature_traceName: string = destructuredData[0].service_name

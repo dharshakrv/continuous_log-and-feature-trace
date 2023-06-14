@@ -86,4 +86,35 @@ export class DBService {
         });
 
     }
+
+    getByQueryAndSortAlphaNumeric(collectionName: any, whereObject: any, sortCondition: any) {
+        return new Promise((resolve, reject) => {
+            // // Added Log Level based on ENV variable by Akhil on 16-08-2021
+            // if (process.env.LOG_LEVEL === 'DEBUG') {
+            //     this.logger.log("collectionName", collectionName)
+            //     this.logger.log("whereObject", whereObject)
+            // }
+            this.logger.log(`collectionName: , ${collectionName}`);
+            this.logger.log(`whereObject: , ${JSON.stringify(whereObject)}`);
+            this.logger.log(`sortCondition: , ${JSON.stringify(sortCondition)}`);
+            MongoConnection.state().getDb().then(async db => {
+                const collection = db.collection(collectionName);
+                let queryCursor = collection.find<any>(whereObject, {}).sort(sortCondition).collation({ locale: "en_US", numericOrdering: true }).limit(1);
+                queryCursor.toArray().then((v: any) => {
+                    // this.logger.log("VisitByv", v)
+                    return resolve(v);
+                }, (error: any) => {
+                    this.logger.error(`Read Error Inner Retrieving , ${error}`);
+                    return reject(error);
+                }).catch((error: any) => {
+                    this.logger.error(`Read Error Outer Retrieving , ${error}`);
+                    return reject(error);
+                });
+            }).catch((error: any) => {
+                this.logger.error(`Read Error Outer Retrieving , ${error}`);
+                return reject(error);
+            });
+        });
+
+    }
 }

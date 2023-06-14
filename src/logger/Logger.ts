@@ -14,22 +14,23 @@ export class Logger {
             transports: [
                 new winston.transports.Console(),
                 new winston.transports.File({ filename: 'logs/all.log' }),
-                new LokiTransport({
-                    host: "http://localhost:3100",
-                    interval: 5,
-                    json: true
-                })
+                // new LokiTransport({
+                //     host: "http://localhost:3100",
+                //     interval: 5,
+                //     json: true,
+                //     labels: { log: 'debug_logs' }
+                // })
             ]
         })
         this.logger.exceptions.handle(
             new winston.transports.Console(),
             new winston.transports.File({ filename: 'exceptions.log', dirname: 'logs' }),
-            new LokiTransport({
-                host: "http://localhost:3100",
-                    interval: 5,
-                    json: true,
-                    labels: { exception: 'exception_logs' }
-            })
+            // new LokiTransport({
+            //     host: "http://localhost:3100",
+            //         interval: 5,
+            //         json: true,
+            //         labels: { exception: 'exception_logs' }
+            // })
         );
     }
 

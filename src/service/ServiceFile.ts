@@ -75,14 +75,11 @@ export class Service {
             let logData = data[0]
             if (logData.trace !== undefined || logData.trace !== null) {
                 spanTraceId = logData.span_trace
-                parentTraceId = logData.parent_trace
             }
             delete logData.span_trace
-            delete logData.parent_trace_id
 
             let destructuredData: any = {
                 span_trace_id: spanTraceId,
-                parent_trace_id: parentTraceId,
                 log_data: logData
             }
             MongoConnection.state().getDb().then(async db => {
