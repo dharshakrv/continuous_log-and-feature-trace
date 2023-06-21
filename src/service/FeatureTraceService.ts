@@ -3,17 +3,23 @@ import { MongoConnection } from "../config/MongoConnection";
 import { Service } from "./ServiceFile"
 import { DBService } from "./DBService";
 import { Logger } from "../logger/Logger";
+import { FeatureRepository } from "../data/repository/FeatureRepository";
+import { DataObjectKeyRepository } from "../data/repository/DataObjectKeyRepository";
 
 export class FeatureTraceService {
 
     private serviceFile: Service
     private logger: Logger
     private dbService: DBService
+    private featureRepository: FeatureRepository;
+    private dataObjectKeyRepository: DataObjectKeyRepository;
 
     constructor() {
         this.serviceFile = DI.get(Service)
         this.logger = DI.get(Logger)
         this.dbService = DI.get(DBService)
+        this.featureRepository = DI.get(FeatureRepository);
+        this.dataObjectKeyRepository = DI.get(DataObjectKeyRepository);
     }
 
     async getAllTraces(requestData: any) {
@@ -144,6 +150,65 @@ export class FeatureTraceService {
                 reject(error)
             }
         })
+    }
+
+    async searchFeatureByKeys(featureName: string, featureTraceId: any, dataObjField: any, dataObjValue: any) {
+        return new Promise(async(resolve, reject) => {
+            // 1. query by feature_name or feature trace
+            let traceId = featureTraceId ? featureTraceId : { $ne:null }
+            let featureTraceName = featureName ? featureName : { $ne:null }
+            // let traceWhereObj: any = {
+            //     "parent_trace_id": traceId,
+            //     "feature_trace_name": featureTraceName
+            // }
+            let logWhereObj: any = {
+                // "span_trace_id": traceId,
+                "request_body": { $ne: null }
+            }
+            // 2. fetch the records by feature name / trace id and logs
+            // let fetchedTraceRecords: any = await this.dbService.getByQuery('trace_obj', traceWhereObj)
+            let fetchedLogsByTrace: any = await this.dbService.getByQuery('log_objects', logWhereObj )
+            
+            // let FEATURE_NAME: string = fetchedTraceRecords[0].feature_trace_name
+            // let APP_CODE: string = fetchedTraceRecords[0].app_code
+
+            // 3. select the data object by the feature name
+            // let dataKeys: any = []
+            // await this.featureRepository.findByCode(FEATURE_NAME, 'REAL_RECO')
+            // 4. fetch the data object keys by the data object id
+            // .then(async(featureRecord: any) => {
+            //     let dataObjectId = featureRecord.data_object_id
+            //     await this.dataObjectKeyRepository.getByDataObject(dataObjectId)
+            //     .then((dataObjectKeys: any) => { 
+            //         let dataKeys = dataObjectKeys.map((dk: any) => dk.code)
+            //         if (!dataKeys.includes(dataObjField)) reject(`${dataObjField}, data Field not exists`)
+            //     })
+            //     .catch((err: any) => { 
+            //         console.log('err2: ', err) 
+            //     })
+            // })
+            // .catch((err: any) => { 
+            //     console.log('err1: ', err) 
+            // })
+            let parent_traces = []
+            for (let reqObjlogs of fetchedLogsByTrace) {
+                let reqObj = JSON.parse(JSON.stringify(reqObjlogs.request_body))
+                if (Object.keys(reqObj).length == 0) continue
+                let objKeys = Object.keys(reqObj)
+                if (objKeys.includes(dataObjField) && reqObj[dataObjField] == dataObjValue) {
+                    parent_traces.push(reqObjlogs.span_trace_id)
+                }
+            }
+            let featureWhereObj = {
+                "parent_trace_id": { $in: parent_traces }
+            }
+            let fetchedTraceRecords = this.dbService.getByQuery('trace_obj', featureWhereObj)
+            resolve(fetchedTraceRecords)
+            // 5. map the data object keys with the fetched records list
+
+            // 6. search by the given data value for the data object key
+        })
+
     }
 
     async processTracedata(trace_data_obj: any): Promise<any> {

@@ -72,15 +72,22 @@ export class Service {
         new Promise(async (resolve, reject) => {
             let spanTraceId: any
             let parentTraceId: any
+            let requestBody: any
             let logData = data[0]
+            
+            if (logData.log == "REQ_BODY" || "REQ_QUERY") {
+                requestBody = logData.requestObj
+            }
             if (logData.trace !== undefined || logData.trace !== null) {
                 spanTraceId = logData.span_trace
             }
+            delete logData.requestObj
             delete logData.span_trace
 
             let destructuredData: any = {
                 span_trace_id: spanTraceId,
-                log_data: logData
+                log_data: logData,
+                request_body: requestBody
             }
             MongoConnection.state().getDb().then(async db => {
                 const collectionName = db.collection('log_objects')
