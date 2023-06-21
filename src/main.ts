@@ -3,6 +3,8 @@ import bodyParser from 'body-parser';
 import cors from 'cors'
 import { FeatureTraceController } from './controller/FeatureTraceController'
 import { DI } from './di/DIContainer';
+import { DBConnection } from './config/DBConnection';
+import { initModels } from './data/entity/init-models';
 const expressApp: express.Application = express()
 
 import morgan from 'morgan';
@@ -11,6 +13,16 @@ dotenv.config();
 
 class App {
 
+    private dbConnection: DBConnection;
+
+    constructor() {
+        this.dbConnection = DI.get(DBConnection);
+    }
+
+    initializeRepositories() {
+        initModels(this.dbConnection.connection);
+    }
+
     initializeApp() {
         this.registerControllers()
         this.startServer()
@@ -18,6 +30,7 @@ class App {
 
     // Register controllers
     private async registerControllers() {
+        this.initializeRepositories()
         expressApp.use(morgan('combined'))
         expressApp.use(bodyParser.urlencoded({ extended: true }))
         expressApp.use(bodyParser.json())
