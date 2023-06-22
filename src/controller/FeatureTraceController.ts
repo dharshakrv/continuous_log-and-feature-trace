@@ -24,14 +24,27 @@ export class FeatureTraceController implements Controller {
         })
 
         router.post('/getAllTraces', async (req: Request, res: Response) => {
-            let requestData: any = req.body
-            await this.featureTraceService.getAllTraces(requestData)
-            .then((resp: any) => {
-                res.json({ status: "success", response: resp, totalRecords: resp.totalRecords })
-            })
-            .catch((e: any) => {
-                res.json({ status: "success", response: e.result, totalRecords: e.totalRecords })
-            })
+            let searchType = req.body.search_type
+            let requestBody = req.body.payload
+            if (searchType == 'criteria') {
+                await this.featureTraceService.featureSearch(requestBody)
+                .then((resp: any) => {
+                    res.json({ status: "success", response: resp.result, totalRecords: resp.totalRecords }) 
+                })
+                .catch((err: any) => { 
+                    res.json({ status: "failed", response: err }) 
+                })
+            }
+            else if (searchType == 'feature') {
+                let requestData: any = req.body.payload
+                await this.featureTraceService.getAllTraces(requestData)
+                .then((resp: any) => {
+                    res.json({ status: "success", response: resp.result, totalRecords: resp.totalRecords })
+                })
+                .catch((e: any) => {
+                    res.json({ status: "success", response: e.result, totalRecords: e.totalRecords })
+                })
+            }
         })
 
         router.post('/getTraces',async (req: Request, res: Response) => {
@@ -51,16 +64,6 @@ export class FeatureTraceController implements Controller {
             await this.featureTraceService.getFeatureLogs(spanTraceId)
             .then((resp: any) => { res.json({ status: "success", response: resp }) })
             .catch((e: any) => { res.json({ status: "success", e }) })
-        })
-
-        router.get('/featureSearch', async (req: Request, res: Response) => {
-            let traceId: any = req.body.trace_id
-            let featureName: any = req.body.featureName
-            let objField: any = req.body.dataField
-            let objValue: any = req.body.dataValue
-            await this.featureTraceService.searchFeatureByKeys(featureName, traceId, objField, objValue)
-            .then((resp: any) => { res.json({ status: "success", response: resp }) })
-            .catch((err: any) => { res.json({ status: "failed", response: err }) })
         })
 
         return router

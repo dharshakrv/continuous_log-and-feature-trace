@@ -22,6 +22,60 @@ export class FeatureTraceService {
         this.dataObjectKeyRepository = DI.get(DataObjectKeyRepository);
     }
 
+    async featureSearch(requestData: any) {
+        return new Promise(async(resolve, reject) => {
+            let dataObjField = requestData.dataField
+            let dataObjValue = requestData.dataValue
+            if (dataObjField == '' || dataObjValue == '') {
+                reject("dataField or dataValue not to be empty")
+            }
+            let logWhereObj: any = {
+                "request_body": { $ne: null }
+            }
+            let fetchedLogsByTrace: any = await this.dbService.getByQuery('log_objects', logWhereObj )
+            let parent_traces = []
+            for (let reqObjlogs of fetchedLogsByTrace) {
+                let reqObj = JSON.parse(JSON.stringify(reqObjlogs.request_body))
+                let objKeys = Object.keys(reqObj)
+                if (objKeys.length == 0) continue
+                if (objKeys.includes(dataObjField) && reqObj[dataObjField] == dataObjValue) {
+                    parent_traces.push(reqObjlogs.span_trace_id)
+                }
+            }
+
+            let featureWhereObj = [
+                {
+                    $facet: {
+                        "result": [
+                            { $match: { "parent_trace_id": { $in: parent_traces } } }
+                        ],
+                        "totalDocuments": [
+                            { $match: { "parent_trace_id": { $in: parent_traces } } },
+                            { $count: "count" }
+                        ]
+                    }
+                }
+            ]
+
+            // let featureWhereObj = {
+            //     "parent_trace_id": { $in: parent_traces }
+            // }
+
+            // let featureWhereObj = [
+            //     { $match: { "parent_trace_id": { $in: parent_traces } } },
+            //     { $project: { "feature_trace": 0 } },
+            //     { $count: "count" }
+            // ]
+            // let fetchedTraceRecords: any = await this.dbService.getByQuery('trace_obj', featureWhereObj)
+            let fetchedTraceRecords: any = await this.dbService.getByArrayArgToNestedArrayQuery('trace_obj', featureWhereObj)
+            let response: any = {
+                result: fetchedTraceRecords[0].result,
+                totalRecords: fetchedTraceRecords[0].totalDocuments[0].count
+            }
+            resolve(response)
+        })
+    }
+
     async getAllTraces(requestData: any) {
         return new Promise(async(resolve, reject) => {
             let startDate = requestData.start_date ? new Date(requestData.start_date): new Date("2023-01-01 00:00:00")
@@ -36,78 +90,80 @@ export class FeatureTraceService {
                  * Aggregation search on column
                  * { $match: { "app_code": { $regex: "", $options: "i" } } }
                  */
-
-                /**
-                 * Fecet Query
-                 * let facetQuery = [ { 
-                        $facet: {
-                            "result": [
-                                { $match: { "createdAt": {  $gte: startDate, $lte: endDate } } },
-                                { $sort: { _id: -1 } },
-                                { $match: { 
-                                        "app_code": appCode, 
-                                        "parent_trace_id": traceId, 
-                                        "feature_trace_name": featureTraceName,
-                                        "request_ip": requestIP
-                                    }
-                                },
-                                { $project: { "feature_trace": 0 } },
-                                { $skip: noOfrecords * (pageNo - 1) },
-                                { $limit: noOfrecords },
-                            ],
-                            "totalDocuments": [
-                                { $match: { "createdAt": {  $gte: startDate, $lte: endDate } } },
-                                {  $sort: { _id: -1 } },
-                                { $match: { 
-                                    "app_code": appCode,
-                                    "parent_trace_id": traceId, 
-                                    "feature_trace_name": featureTraceName
-                                    } 
-                                },
-                                { $project: { "feature_trace": 0 } },
-                                { $count: "count" }
-                            ],
-                        }
-                    } ]
-                 */
-                let query = [
-                    { 
-                        $match: { 
-                            "createdAt": { 
-                                $gte: startDate, 
-                                $lte: endDate
-                            }
-                        }
-                    },
-                    {  $sort: { _id: -1 } },
-                    { $match: { 
-                        "app_code": requestData.app_code, 
-                        "parent_trace_id": traceId, 
-                        "feature_trace_name": featureTraceName, 
-                        "request_ip": requestIP 
-                    } },
-                    { $project: { "feature_trace": 0 } },
-                    { $skip: noOfrecords * (pageNo - 1) },
-                    { $limit: noOfrecords },
-                ]
                 
-                this.logger.log(`query: , ${JSON.stringify(query)}`)
-                let resultData: any = await this.dbService.getByArrayArgToNestedArrayQuery('trace_obj', query)
-                let totalDocuments: any = await this.dbService.getByArrayArgToNestedArrayQuery('trace_obj', [
-                    { $match: { "createdAt": { 
-                        $gte: startDate, 
-                        $lte: endDate
-                    }}},
-                    {  $sort: { _id: -1 } },
-                    { $match: { 
-                        "app_code": requestData.app_code,
-                        "parent_trace_id": traceId, 
-                        "feature_trace_name": featureTraceName
-                    } },
-                    { $project: { "feature_trace": 0 } },
-                    { $count: "count" }
-                ])
-                resolve({ result: resultData, totalRecords: totalDocuments[0].count })
+                let featureWhereObj = [ { 
+                    $facet: {
+                        "result": [
+                            { $match: { "createdAt": { $gte: startDate, $lte: endDate } } },
+                            {  $sort: { _id: -1 } },
+                            { $match: { 
+                                "app_code": requestData.app_code, 
+                                "parent_trace_id": traceId, 
+                                "feature_trace_name": featureTraceName, 
+                                "request_ip": requestIP 
+                            } },
+                            { $project: { "feature_trace": 0 } },
+                            { $skip: noOfrecords * (pageNo - 1) },
+                            { $limit: noOfrecords }
+                        ],
+                        "totalDocuments": [
+                            { $match: { "createdAt": { $gte: startDate, $lte: endDate } } },
+                            {  $sort: { _id: -1 } },
+                            { $match: { 
+                                "app_code": requestData.app_code,
+                                "parent_trace_id": traceId, 
+                                "feature_trace_name": featureTraceName
+                            } },
+                            { $project: { "feature_trace": 0 } },
+                            { $count: "count" }
+                        ],
+                    }
+                } ]
+
+
+                // let query = [
+                //     { 
+                //         $match: { 
+                //             "createdAt": { 
+                //                 $gte: startDate, 
+                //                 $lte: endDate
+                //             }
+                //         }
+                //     },
+                //     {  $sort: { _id: -1 } },
+                //     { $match: { 
+                //         "app_code": requestData.app_code, 
+                //         "parent_trace_id": traceId, 
+                //         "feature_trace_name": featureTraceName, 
+                //         "request_ip": requestIP 
+                //     } },
+                //     { $project: { "feature_trace": 0 } },
+                //     { $skip: noOfrecords * (pageNo - 1) },
+                //     { $limit: noOfrecords },
+                // ]
+
+                // this.logger.log(`query: , ${JSON.stringify(query)}`)
+                // let resultData: any = await this.dbService.getByArrayArgToNestedArrayQuery('trace_obj', query)
+                // let totalDocuments: any = await this.dbService.getByArrayArgToNestedArrayQuery('trace_obj', [
+                //     { $match: { "createdAt": { 
+                //         $gte: startDate, 
+                //         $lte: endDate
+                //     }}},
+                //     {  $sort: { _id: -1 } },
+                //     { $match: { 
+                //         "app_code": requestData.app_code,
+                //         "parent_trace_id": traceId, 
+                //         "feature_trace_name": featureTraceName
+                //     } },
+                //     { $project: { "feature_trace": 0 } },
+                //     { $count: "count" }
+                // ])
+                let fetchedTraceRecords: any = await this.dbService.getByArrayArgToNestedArrayQuery('trace_obj', featureWhereObj)
+                let response: any = {
+                    result: fetchedTraceRecords[0].result,
+                    totalRecords: fetchedTraceRecords[0].totalDocuments[0].count
+                }
+                resolve(response)
             }
             catch(error) {
                 reject({ result: [], totalRecords: 0 })
@@ -154,7 +210,6 @@ export class FeatureTraceService {
 
     async searchFeatureByKeys(featureName: string, featureTraceId: any, dataObjField: any, dataObjValue: any) {
         return new Promise(async(resolve, reject) => {
-            // 1. query by feature_name or feature trace
             let traceId = featureTraceId ? featureTraceId : { $ne:null }
             let featureTraceName = featureName ? featureName : { $ne:null }
             // let traceWhereObj: any = {
@@ -165,17 +220,12 @@ export class FeatureTraceService {
                 // "span_trace_id": traceId,
                 "request_body": { $ne: null }
             }
-            // 2. fetch the records by feature name / trace id and logs
             // let fetchedTraceRecords: any = await this.dbService.getByQuery('trace_obj', traceWhereObj)
             let fetchedLogsByTrace: any = await this.dbService.getByQuery('log_objects', logWhereObj )
-            
             // let FEATURE_NAME: string = fetchedTraceRecords[0].feature_trace_name
             // let APP_CODE: string = fetchedTraceRecords[0].app_code
-
-            // 3. select the data object by the feature name
             // let dataKeys: any = []
             // await this.featureRepository.findByCode(FEATURE_NAME, 'REAL_RECO')
-            // 4. fetch the data object keys by the data object id
             // .then(async(featureRecord: any) => {
             //     let dataObjectId = featureRecord.data_object_id
             //     await this.dataObjectKeyRepository.getByDataObject(dataObjectId)
@@ -204,9 +254,6 @@ export class FeatureTraceService {
             }
             let fetchedTraceRecords = this.dbService.getByQuery('trace_obj', featureWhereObj)
             resolve(fetchedTraceRecords)
-            // 5. map the data object keys with the fetched records list
-
-            // 6. search by the given data value for the data object key
         })
 
     }
@@ -235,36 +282,6 @@ export class FeatureTraceService {
             // resolve(destructuredData)
 
             this.logger.log(`final data: ,${JSON.stringify(destructuredData)}`)
-            // let requestIP = destructuredData[0].requestIP
-            // const parent_traceId: string = destructuredData[0].trace_id
-            // const feature_traceName: string = destructuredData[0].service_name
-            // const trace_createdAt: Date = destructuredData[0].startTime
-            // const app_code: string = destructuredData[0].http_path.split("/")[0]
-            // const trace_obj: Object = destructuredData
-
-            // const trace_data: any = {
-            //     parent_trace_id: parent_traceId,
-            //     feature_trace_name: feature_traceName,
-            //     app_code: app_code,
-            //     feature_createdAt: trace_createdAt,
-            //     feature_trace: trace_obj,
-            //     request_ip: requestIP,
-            //     createdAt: new Date(),
-            //     updatedAt: new Date()
-            // }
-
-            // MongoConnection.state().getDb().then(async db => {
-            //     const collectionName = db.collection('trace_obj')
-            //     await collectionName.insertOne(trace_data)
-            //     .then((resp: any) => { 
-            //         this.logger.log('trace_obj inserted')
-            //         resolve('trace obj inserted')
-            //     })
-            //     .catch((e: any) => {
-            //         this.logger.log(e) 
-            //         reject(e)
-            //     })
-            // })
         })
     }
 }
