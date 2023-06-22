@@ -9,6 +9,25 @@ export class DBService {
         this.logger = DI.get(Logger)
     }
 
+    insertNew(collectionName: any, documentObject: any) {
+        return new Promise((resolve, reject) => {
+            if (process.env.LOG_LEVEL === 'DEBUG') {
+            this.logger.log(`collectionName, ${collectionName}`)
+            this.logger.log(`whereObject, ${documentObject}`)
+            }
+            MongoConnection.state().getDb().then(async db => {
+                const collection = db.collection(collectionName)
+                await collection.insertOne(documentObject)
+                .then((resp: any) => { 
+                    resolve({ status: resp, message: 'criteria object inserted' })
+                })
+                .catch((e: any) => {
+                    reject(e) 
+                })
+            })
+        });
+    }
+
     getByQuery(collectionName: any, whereObject: any) {
         return new Promise((resolve, reject) => {
             if (process.env.LOG_LEVEL === 'DEBUG') {
