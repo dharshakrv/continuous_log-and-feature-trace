@@ -18,7 +18,6 @@ export class CriteriaSearchService {
             const criteria_dataObject: any = {
                 criteria_name: criteriaObject.name,
                 criteria_fieldname: criteriaObject.dataField,
-                criteria_fieldvalue: criteriaObject.dataFieldValue,
                 status: 'ACTIVE',
                 createdAt: new Date(),
                 updatedAt: new Date()
