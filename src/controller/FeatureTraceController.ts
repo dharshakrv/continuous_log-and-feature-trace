@@ -32,7 +32,7 @@ export class FeatureTraceController implements Controller {
                     res.json({ status: "success", response: resp.result, totalRecords: resp.totalRecords }) 
                 })
                 .catch((err: any) => { 
-                    res.json({ status: "failed", response: err }) 
+                    res.json({ status: "failed", response: err.result, totalRecords: err.totalRecords }) 
                 })
             }
             else if (searchType == 'feature') {
@@ -42,7 +42,7 @@ export class FeatureTraceController implements Controller {
                     res.json({ status: "success", response: resp.result, totalRecords: resp.totalRecords })
                 })
                 .catch((e: any) => {
-                    res.json({ status: "success", response: e.result, totalRecords: e.totalRecords })
+                    res.json({ status: "failed", response: e.result, totalRecords: e.totalRecords })
                 })
             }
         })
@@ -54,7 +54,7 @@ export class FeatureTraceController implements Controller {
                 res.json({ status: "success", response: resp })
             })
             .catch((e: any) => {
-                res.json({ status: "success", e })
+                res.json({ status: "failed", e })
             })
         })
 
@@ -63,7 +63,7 @@ export class FeatureTraceController implements Controller {
             let parentTraceId: any = req.body.parent_trace_id
             await this.featureTraceService.getFeatureLogs(spanTraceId)
             .then((resp: any) => { res.json({ status: "success", response: resp }) })
-            .catch((e: any) => { res.json({ status: "success", e }) })
+            .catch((e: any) => { res.json({ status: "failed", e }) })
         })
 
         return router

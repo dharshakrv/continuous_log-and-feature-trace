@@ -11,23 +11,19 @@ export class FeatureTraceService {
     private serviceFile: Service
     private logger: Logger
     private dbService: DBService
-    private featureRepository: FeatureRepository;
-    private dataObjectKeyRepository: DataObjectKeyRepository;
 
     constructor() {
         this.serviceFile = DI.get(Service)
         this.logger = DI.get(Logger)
         this.dbService = DI.get(DBService)
-        this.featureRepository = DI.get(FeatureRepository);
-        this.dataObjectKeyRepository = DI.get(DataObjectKeyRepository);
     }
 
     async featureSearch(requestData: any) {
         return new Promise(async(resolve, reject) => {
-            let dataObjField = requestData.dataField
-            let dataObjValue = requestData.dataValue
+            let dataObjField = requestData.data_field
+            let dataObjValue = requestData.data_value
             if (dataObjField == '' || dataObjValue == '') {
-                reject("dataField or dataValue not to be empty")
+                reject({ result: [], message: "dataField or dataValue not to be empty", totalRecords: 0 })
             }
             let logWhereObj: any = {
                 "request_body": { $ne: null }
@@ -43,34 +39,21 @@ export class FeatureTraceService {
                 }
             }
 
-            let featureWhereObj = [
-                {
-                    $facet: {
-                        "result": [
-                            { $match: { "parent_trace_id": { $in: parent_traces } } }
-                        ],
-                        "totalDocuments": [
-                            { $match: { "parent_trace_id": { $in: parent_traces } } },
-                            { $count: "count" }
-                        ]
-                    }
-                }
-            ]
+            let featureWhereObj = [{
+                $facet: { "result": [
+                    { $match: { "parent_trace_id": { $in: parent_traces } } }
+                ],
+                "totalDocuments": [
+                    { $match: { "parent_trace_id": { $in: parent_traces } } },
+                    { $count: "count" }
+                ]}
+            }]
 
-            // let featureWhereObj = {
-            //     "parent_trace_id": { $in: parent_traces }
-            // }
-
-            // let featureWhereObj = [
-            //     { $match: { "parent_trace_id": { $in: parent_traces } } },
-            //     { $project: { "feature_trace": 0 } },
-            //     { $count: "count" }
-            // ]
-            // let fetchedTraceRecords: any = await this.dbService.getByQuery('trace_obj', featureWhereObj)
+            this.logger.log(`feature whereObj - ${JSON.stringify(featureWhereObj)}`)
             let fetchedTraceRecords: any = await this.dbService.getByArrayArgToNestedArrayQuery('trace_obj', featureWhereObj)
             let response: any = {
-                result: fetchedTraceRecords[0].result,
-                totalRecords: fetchedTraceRecords[0].totalDocuments[0].count
+                result: fetchedTraceRecords[0].result ? fetchedTraceRecords[0].result : [],
+                totalRecords: fetchedTraceRecords[0].totalDocuments[0] ? fetchedTraceRecords[0].totalDocuments[0].count : 0
             }
             resolve(response)
         })
@@ -91,34 +74,32 @@ export class FeatureTraceService {
                  * { $match: { "app_code": { $regex: "", $options: "i" } } }
                  */
                 
-                let featureWhereObj = [ { 
-                    $facet: {
-                        "result": [
-                            { $match: { "createdAt": { $gte: startDate, $lte: endDate } } },
-                            {  $sort: { _id: -1 } },
-                            { $match: { 
-                                "app_code": requestData.app_code, 
-                                "parent_trace_id": traceId, 
-                                "feature_trace_name": featureTraceName, 
-                                "request_ip": requestIP 
-                            } },
-                            { $project: { "feature_trace": 0 } },
-                            { $skip: noOfrecords * (pageNo - 1) },
-                            { $limit: noOfrecords }
-                        ],
-                        "totalDocuments": [
-                            { $match: { "createdAt": { $gte: startDate, $lte: endDate } } },
-                            {  $sort: { _id: -1 } },
-                            { $match: { 
-                                "app_code": requestData.app_code,
-                                "parent_trace_id": traceId, 
-                                "feature_trace_name": featureTraceName
-                            } },
-                            { $project: { "feature_trace": 0 } },
-                            { $count: "count" }
-                        ],
-                    }
-                } ]
+                let featureWhereObj = [{ $facet: {
+                    "result": [
+                        { $match: { "createdAt": { $gte: startDate, $lte: endDate } } },
+                        {  $sort: { _id: -1 } },
+                        { $match: { 
+                            "app_code": requestData.app_code, 
+                            "parent_trace_id": traceId, 
+                            "feature_trace_name": featureTraceName, 
+                            "request_ip": requestIP 
+                        } },
+                        { $project: { "feature_trace": 0 } },
+                        { $skip: noOfrecords * (pageNo - 1) },
+                        { $limit: noOfrecords }
+                    ],
+                    "totalDocuments": [
+                        { $match: { "createdAt": { $gte: startDate, $lte: endDate } } },
+                        {  $sort: { _id: -1 } },
+                        { $match: { 
+                            "app_code": requestData.app_code,
+                            "parent_trace_id": traceId, 
+                            "feature_trace_name": featureTraceName
+                        } },
+                        { $project: { "feature_trace": 0 } },
+                        { $count: "count" }
+                    ],
+                }}]
 
 
                 // let query = [
