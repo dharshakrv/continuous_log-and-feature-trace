@@ -10,6 +10,7 @@ const expressApp: express.Application = express()
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { CriteriaSearchController } from './controller/CriteriaSearchController';
+import { ChartController } from './controller/ChartController';
 dotenv.config();
 
 class App {
@@ -47,6 +48,7 @@ class App {
         // Controllers
         expressApp.use(`${process.env.BASE_URL}/trace`, DI.get<FeatureTraceController>(FeatureTraceController).getRouter())
         expressApp.use(`${process.env.BASE_URL}/criteria`, DI.get<CriteriaSearchController>(CriteriaSearchController).getRouter())
+        expressApp.use(`${process.env.BASE_URL}/chart`, DI.get<ChartController>(ChartController).getRouter())
     }
 
     private startServer() {
