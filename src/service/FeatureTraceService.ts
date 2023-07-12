@@ -101,44 +101,6 @@ export class FeatureTraceService {
                     ],
                 }}]
 
-
-                // let query = [
-                //     { 
-                //         $match: { 
-                //             "createdAt": { 
-                //                 $gte: startDate, 
-                //                 $lte: endDate
-                //             }
-                //         }
-                //     },
-                //     {  $sort: { _id: -1 } },
-                //     { $match: { 
-                //         "app_code": requestData.app_code, 
-                //         "parent_trace_id": traceId, 
-                //         "feature_trace_name": featureTraceName, 
-                //         "request_ip": requestIP 
-                //     } },
-                //     { $project: { "feature_trace": 0 } },
-                //     { $skip: noOfrecords * (pageNo - 1) },
-                //     { $limit: noOfrecords },
-                // ]
-
-                // this.logger.log(`query: , ${JSON.stringify(query)}`)
-                // let resultData: any = await this.dbService.getByArrayArgToNestedArrayQuery('trace_obj', query)
-                // let totalDocuments: any = await this.dbService.getByArrayArgToNestedArrayQuery('trace_obj', [
-                //     { $match: { "createdAt": { 
-                //         $gte: startDate, 
-                //         $lte: endDate
-                //     }}},
-                //     {  $sort: { _id: -1 } },
-                //     { $match: { 
-                //         "app_code": requestData.app_code,
-                //         "parent_trace_id": traceId, 
-                //         "feature_trace_name": featureTraceName
-                //     } },
-                //     { $project: { "feature_trace": 0 } },
-                //     { $count: "count" }
-                // ])
                 let fetchedTraceRecords: any = await this.dbService.getByArrayArgToNestedArrayQuery('trace_obj', featureWhereObj)
                 let response: any = {
                     result: fetchedTraceRecords[0].result,
@@ -193,34 +155,14 @@ export class FeatureTraceService {
         return new Promise(async(resolve, reject) => {
             let traceId = featureTraceId ? featureTraceId : { $ne:null }
             let featureTraceName = featureName ? featureName : { $ne:null }
-            // let traceWhereObj: any = {
-            //     "parent_trace_id": traceId,
-            //     "feature_trace_name": featureTraceName
-            // }
+
             let logWhereObj: any = {
                 // "span_trace_id": traceId,
                 "request_body": { $ne: null }
             }
-            // let fetchedTraceRecords: any = await this.dbService.getByQuery('trace_obj', traceWhereObj)
+            
             let fetchedLogsByTrace: any = await this.dbService.getByQuery('log_objects', logWhereObj )
-            // let FEATURE_NAME: string = fetchedTraceRecords[0].feature_trace_name
-            // let APP_CODE: string = fetchedTraceRecords[0].app_code
-            // let dataKeys: any = []
-            // await this.featureRepository.findByCode(FEATURE_NAME, 'REAL_RECO')
-            // .then(async(featureRecord: any) => {
-            //     let dataObjectId = featureRecord.data_object_id
-            //     await this.dataObjectKeyRepository.getByDataObject(dataObjectId)
-            //     .then((dataObjectKeys: any) => { 
-            //         let dataKeys = dataObjectKeys.map((dk: any) => dk.code)
-            //         if (!dataKeys.includes(dataObjField)) reject(`${dataObjField}, data Field not exists`)
-            //     })
-            //     .catch((err: any) => { 
-            //         console.log('err2: ', err) 
-            //     })
-            // })
-            // .catch((err: any) => { 
-            //     console.log('err1: ', err) 
-            // })
+            
             let parent_traces = []
             for (let reqObjlogs of fetchedLogsByTrace) {
                 let reqObj = JSON.parse(JSON.stringify(reqObjlogs.request_body))
@@ -260,7 +202,6 @@ export class FeatureTraceService {
             }
             destructuredData.push(trace_data_obj.root)
             iterate(trace_data_obj);
-            // resolve(destructuredData)
 
             this.logger.log(`final data: ,${JSON.stringify(destructuredData)}`)
         })

@@ -14,9 +14,6 @@ export class KafkaService {
     private logConsumer: Consumer
     private serviceFile: Service
 
-    // private logger: Logg = DI.get(Logg)
-    // private serviceFile: Service = DI.get(Service)
-
     constructor() {
         this.kafka = new Kafka({
             clientId: 'kafka-app',
