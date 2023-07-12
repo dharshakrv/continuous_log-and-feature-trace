@@ -45,9 +45,9 @@ export class ChartService {
             let response = [{
                 chartType: "response_codes",
                 data: [{
-                    "counst200": status200Counts,
-                    "counts400": status400Counts,
-                    "counts500": status500Counts
+                    "status_200": status200Counts,
+                    "status_400": status400Counts,
+                    "status_500": status500Counts
                 }]
             },
             {
@@ -78,9 +78,9 @@ export class ChartService {
                 }}]
             }}]
 
-            let requiredResult = this.fetchTraceRecords(featureWhereObj)
+            let requiredResult = await this.fetchTraceRecords(featureWhereObj)
             // feature response_code counts
-            const featureListByResponseCode = this.filterByResponseCode(requiredResult, parseInt(responseCode))
+            const featureListByResponseCode = this.filterByResponseCode(requiredResult, responseCode)
             resolve([{
                 chartType: "response_codes",
                 data: [{ "filteredfeatureList": featureListByResponseCode }]
@@ -98,7 +98,7 @@ export class ChartService {
                 }}]
             }}]
 
-            let requiredResult = this.fetchTraceRecords(featureWhereObj)
+            let requiredResult = await this.fetchTraceRecords(featureWhereObj)
             // feature response_code counts
             const featureListByResponseTime = this.filterByResponseTime(requiredResult, responseTime1, responseTime2)
             resolve([{
@@ -108,8 +108,8 @@ export class ChartService {
         })
     }
 
-    fetchTraceRecords(featureWhereObj: any) {
-        let fetchedTraceRecords: any = this.dbService.getByArrayArgToNestedArrayQuery('trace_obj', featureWhereObj)
+    async fetchTraceRecords(featureWhereObj: any) {
+        let fetchedTraceRecords: any = await this.dbService.getByArrayArgToNestedArrayQuery('trace_obj', featureWhereObj)
         let res: any [] = fetchedTraceRecords[0].result
         let requiredResult: any [] = []
         res.map((obj) => {
@@ -124,12 +124,14 @@ export class ChartService {
     }
 
     filterByResponseCode(list: any [], responseCode: number) {
+        console.log('list filter -> ', list.filter(ob => ob.statusCode === responseCode))
         return list.filter(ob => ob.statusCode === responseCode)
     }
 
     filterByResponseTime(list: any [], low: number, high: number) {
         if (low === 0) return list.filter(ob => ob.responseTime <= high)
         else if (high === 0) return list.filter(ob => ob.responseTime > low) 
+        console.log('list filter -> ',list.filter(ob => ob.responseTime > low && ob.responseTime <= high).length)
         return list.filter(ob => ob.responseTime > low && ob.responseTime <= high)
     }
 }

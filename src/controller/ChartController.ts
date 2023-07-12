@@ -27,8 +27,9 @@ export class ChartController implements Controller {
         })
 
         router.post('/featureListByResponseTime', async (req: Request, res: Response) => {
-            let responseTime1 = parseInt(req.body.repsonse_time1)
-            let responseTime2 = parseInt(req.body.repsonse_time2)
+            let responseTime1 = req.body.response_time1
+            let responseTime2 = req.body.response_time2
+            console.log('rt1 - ', responseTime1 + " " + 'rt2 - ', responseTime2)
             await this.chartService.featureTraceListByResponseTime(responseTime1, responseTime2)
             .then((resp: any) => { res.json({ status: "success", response: resp }) })
             .catch((e: any) => { res.json({ status: "failed", e }) })
