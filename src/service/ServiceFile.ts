@@ -42,6 +42,7 @@ export class Service {
             const parent_traceId: string = destructuredData[0].trace_id
             const feature_traceName: string = destructuredData[0].service_name
             const trace_createdAt: Date = destructuredData[0].startTime
+            const trace_responseTime = destructuredData[0].responseTimestamp
             const trace_obj: Object = destructuredData
 
             const trace_data: any = {
@@ -49,6 +50,7 @@ export class Service {
                 feature_trace_name: feature_traceName,
                 app_code: appCode,
                 feature_createdAt: trace_createdAt,
+                feature_responseTime: trace_responseTime,
                 feature_trace: trace_obj,
                 request_ip: requestIP,
                 createdAt: new Date(),
