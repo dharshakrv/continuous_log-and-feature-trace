@@ -11,10 +11,14 @@ export class ChartService {
         this.dbService = DI.get(DBService)
     }
 
-    async featureChartService() {
+    async featureChartService(requestBody: any) {
         return new Promise(async(resolve, reject) => {
             let featureWhereObj = [ { $facet: {
-                "result": [{ $project: { 
+                "result": [
+                    { $match: { 
+                        "app_code": requestBody.app_code
+                    } },
+                    { $project: { 
                     "parent_trace_id": 0, "feature_trace_name": 0, "app_code": 0, 
                     "feature_createdAt": 0, "request_ip": 0 
                 }}]
@@ -68,11 +72,15 @@ export class ChartService {
         })
     }
 
-    async featureTraceListByStatusCodes(responseCode: any) {
+    async featureTraceListByStatusCodes(responseCode: any, appCode: any) {
         return new Promise(async(resolve, reject) => {
             // feature whereObject
             let featureWhereObj = [{ $facet: {
-                "result": [{ $project: { 
+                "result": [
+                    { $match: { 
+                        "app_code": appCode
+                    } },
+                    { $project: { 
                     "parent_trace_id": 0, "feature_trace_name": 0, "app_code": 0, 
                     "feature_createdAt": 0, "request_ip": 0 
                 }}]
@@ -88,11 +96,15 @@ export class ChartService {
         })
     }
 
-    async featureTraceListByResponseTime(responseTime1: any, responseTime2: any) {
+    async featureTraceListByResponseTime(responseTime1: any, responseTime2: any, appCode: any) {
         return new Promise(async(resolve, reject) => {
             // feature whereObject
             let featureWhereObj = [{ $facet: {
-                "result": [{ $project: { 
+                "result": [
+                    { $match: { 
+                        "app_code": appCode
+                    } },
+                    { $project: { 
                     "parent_trace_id": 0, "feature_trace_name": 0, "app_code": 0, 
                     "feature_createdAt": 0, "request_ip": 0 
                 }}]
